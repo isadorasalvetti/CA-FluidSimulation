@@ -24,15 +24,7 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::clickSolver(){
-    bool solverStatus = solver == Particle::VERLET;
-    if (solverStatus) {
-        ui->SolverButton->setText(QString("Euler"));
-        solver = Particle::EULER;
-    }
-    else {
-        ui->SolverButton->setText(QString("Verlet"));
-        solver = Particle::VERLET;
-    }
+
 }
 
 void MainWindow::clickSim(){
@@ -48,6 +40,6 @@ void MainWindow::changekD(){kD = ui->kE->value();}
 void MainWindow::changekE(){kE = ui->kE->value();}
 
 void MainWindow::clickReset(){
-    gl->Reset(dimensions, kD, kE, solver);
+    gl->Reset();
 }
 

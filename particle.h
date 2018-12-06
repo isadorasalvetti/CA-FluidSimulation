@@ -9,7 +9,9 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 #include <QTimer>
+
 #include "collider.h"
+#include "octree.h"
 
 class Particle{
 public:
@@ -23,32 +25,20 @@ public:
         BEND
     };
 
-    enum SOLVER {
-        VERLET,
-        EULER
-    };
-
     bool lp = false; //last position initialized
     QVector3D m_LastPosition;
     QVector3D m_Position; // Center point of particle
     QVector3D m_Velocity; // Current particle velocity
     QVector3D m_Color;    // Particle color
     QVector3D m_Force;
+    float m_Weight;
     float m_Radius; //size of the particle
 
-    //Spring Vars
-    float sSpring;
-
-    QVector3D p1Force;
-    QVector3D p2Force; //neighboor to p2Forces
-
-
     //Neighborhood
-
     void Render(QOpenGLFunctions &gl, QOpenGLShaderProgram *program);
-    void forceUpdate(QVector<Particle*> &particles, int &i, int &dim, std::pair<int, int> &size, float &kE, float &kD);
+    void forceUpdate(QVector<Particle*> &particles, int &i, Octree &myOctree);
     void collsionCheck(QVector<planeCollider> &planes, QVector<triangleCollider> &triangles, QVector<sphereCollider> &spheres);
-    void positionUpdate(SOLVER &solver, QVector<Particle*> &particles, int &i, int &dim, std::pair<int, int> &size, float kD);
+    void positionUpdate();
 
     QVector<int> neighborhoodForFabric(Particle::ROLE role, int &i, std::pair<int, int> &size);
     void fixClothSpacing(QVector<Particle*> &particles, int &i, std::pair<int, int> size, ROLE role);

@@ -50,16 +50,16 @@ void GLWidget::initializeGL()
             QApplication::quit();
     }
 
-    if(!mesh.init(program) || !objectColliders.Init(program))
+    if(!mesh.init(program))
     {
             cout << "Could not create vbo" << endl;
             QApplication::quit();
     }
 
     mesh.addColision(planeColliders);
-    objectColliders.addColision(triColliders, sphereColliders);
+    //objectColliders.addColision(triColliders, sphereColliders);
 
-    spawner.init(program_particle, dim, kD, kE, solver);
+    spawner.init(program_particle);
     spawner.updateColliders(planeColliders, triColliders, sphereColliders);
     timer = new Timer(this, &spawner);
 
@@ -85,8 +85,8 @@ void GLWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     program->bind();
-    mesh.render(*this, program);
-    objectColliders.render(*this, program);
+    //mesh.render(*this, program);
+    //objectColliders.render(*this, program);
     program->release();
 
     //Rendering
@@ -142,7 +142,7 @@ void GLWidget::setModelview()
 {
     QMatrix4x4 viewMatrix;
 
-    viewMatrix.translate(0, 0, -distance);
+    viewMatrix.translate(0, 0, -3 -distance);
     viewMatrix.rotate(angleX, 1.0f, 0.0f, 0.0f);
     viewMatrix.rotate(angleY, 0.0f, 1.0f, 0.0f);
 
@@ -160,10 +160,10 @@ void GLWidget::setModelview()
 //Interface
 //************************************
 
-void GLWidget::Reset(int dim, float kd, float ke, Particle::SOLVER s){
+void GLWidget::Reset(){
     setUpdatesEnabled(false);
     timer->t->stop();
-    spawner.init(program_particle, dim, ke, kd, s);
+    spawner.init(program_particle);
     spawner.updateColliders(planeColliders, triColliders, sphereColliders);
     timer->t->start(0);
     setUpdatesEnabled(true);

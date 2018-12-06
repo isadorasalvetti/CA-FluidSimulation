@@ -1,6 +1,6 @@
 #include "collider.h"
 
-bool Collider::pointPlaneCollision(QVector3D p1, QVector3D p2, planeCollider plane){
+bool Collider::pointPlaneCollision(const QVector3D &p1, const QVector3D &p2, const planeCollider &plane){
     //test if a collision happened
     float p1Direction = QVector3D::dotProduct(plane.n,p1) + plane.d;
     float p2Direction = QVector3D::dotProduct(plane.n,p2) + plane.d;

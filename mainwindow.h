@@ -80,7 +80,6 @@ private:
     GLWidget *gl;
 
     //Settings
-    Particle::SOLVER solver = Particle::VERLET;
     int dimensions = 0;
     float kE = 6.0f;
     float kD = 0.0f;

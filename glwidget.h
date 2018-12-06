@@ -30,10 +30,9 @@ public:
     QVector<triangleCollider> triColliders;
     QVector<sphereCollider> sphereColliders;
 
-    void Reset(int dim, float kd, float ke, Particle::SOLVER s);
+    void Reset();
 
     //Default Spawner Values
-    Particle::SOLVER solver = Particle::VERLET;
     int dim = 1;
     float kE = 8.0f;
     float kD = 0.0f;

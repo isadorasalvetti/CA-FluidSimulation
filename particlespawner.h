@@ -2,6 +2,7 @@
 #define PARTICLESPAWNER_H
 
 #include "particle.h"
+#include "octree.h"
 #include "collider.h"
 
 class particleSpawner
@@ -9,30 +10,19 @@ class particleSpawner
 public:
     ~particleSpawner();
     QVector<Particle*> particles;
-    void init(QOpenGLShaderProgram *prog, int dimension, float kd, float ke, Particle::SOLVER s);
+    void init(QOpenGLShaderProgram *prog);
     void genParticle();
+    void genBoundaryCollider(QVector<planeCollider> &p, float border);
     void updateColliders(QVector<planeCollider> &p, QVector<triangleCollider> &ts, QVector<sphereCollider> &ss);
     void renderParticles(QOpenGLFunctions &gl, QOpenGLShaderProgram *prog);
     void updateParticles();
 
-    Particle::SOLVER solver; //true = euler, false= verlet
+    QVector3D size = QVector3D(10, 3, 5);
+    float spacing = 0.10f;
 
-    //Springs
-    float kE; //elasticity
-    float kD; //damping
-
-    //Rope Simulation
-    int lenght = 35;
-
-    //Cloth simulation
-    std::pair<int, int > size = std::pair<int, int> (60, 40);
-    float spacing = 0.05f;
-    
-    static QVector<int> neightboors();
+    Octree myOctree;
 
 private:
-    int dim = 0;
-
     QVector<planeCollider> planes;
     QVector<triangleCollider> tris;
     QVector<sphereCollider> spheres;

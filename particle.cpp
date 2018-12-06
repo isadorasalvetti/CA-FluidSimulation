@@ -2,87 +2,55 @@
 #include <QOpenGLFunctions>
 #include <math.h>
 
-// Particle simulation
+// Force and Position update
 //****************************************************
 const QVector3D G(0, -3.8f, 0);
-const QVector3D G1(0, -9.8f, 0);
 
-void Particle::forceUpdate(QVector<Particle*> &particles, int &i, int &dim, std::pair<int, int> &size, float &kD, float &kE){
-    bool springs = true;
-    m_Force = QVector3D(0, 0, 0);
 
-    /* SPRING MESHES*/
-
-    if (dim == 0) m_Force = G1;
-    else if (dim == 1){
-
-        /* ROPE FORCE CALCULATION STARTS HERE */
-        if (i+1 < particles.size()){
-            QVector3D q = particles[i+1]->m_Position - m_Position;
-            float velDot = QVector3D::dotProduct(particles[i+1]->m_Velocity - m_Velocity, q.normalized());
-
-            p1Force = ((kE)*(q.length()-sSpring) + kD*velDot) * q.normalized();
-            p2Force = - p1Force;
-        }
-        if (i != 0) {
-            m_Force = G1 + p1Force + particles[i-1]->p2Force;
-        }
-    } else if (dim == 2){
-
-        /* CLOTH FORCE CALCULATION STARTS HERE */
-        /* SPRINGS */
-        float sprSize = sSpring; //initial distance between particle - spring size
-        float sprSizeD = sqrt((sSpring*sSpring)*2); //diagonal spring size
-        float sprSize2 = sSpring*2; //diagonal spring size
-
-        m_Force = G;
-        if (springs){
-            QVector <int> nhd = neighborhoodForFabric(Particle::STRETCH, i, size);
-            for (int j = 0; j < nhd.size(); j++) {
-                QVector3D q = particles[nhd[j]]->m_Position - m_Position;
-                float separatingVelocity = QVector3D::dotProduct(particles[nhd[j]]->m_Velocity - m_Velocity, q.normalized());
-                m_Force += (kE*10*(q.length()-sprSize) + kD*separatingVelocity) * q.normalized();
-            }
-
-            nhd = neighborhoodForFabric(Particle::SHEER, i, size);
-            for (int j = 0; j < nhd.size(); j++) {
-                QVector3D q = particles[nhd[j]]->m_Position - m_Position;
-                float separatingVelocity = QVector3D::dotProduct(particles[nhd[j]]->m_Velocity - m_Velocity, q.normalized());
-                m_Force += (kE*10*(q.length()-sprSizeD) + kD*separatingVelocity) * q.normalized();
-            }
-
-            nhd = neighborhoodForFabric(Particle::BEND, i, size);
-            for (int j = 0; j < nhd.size(); j++) {
-                QVector3D q = particles[nhd[j]]->m_Position - m_Position;
-                float separatingVelocity = QVector3D::dotProduct(particles[nhd[j]]->m_Velocity - m_Velocity, q.normalized());
-                m_Force += (kE*10*(q.length()-sprSize2) + kD*separatingVelocity) * q.normalized();
-            }
-       }
+// Neighboorhood
+//****************************************************
+QVector<int> getParticleNeighboorhood(QVector<Particle*> &particles, int &i){
+    float radius = 1;
+    QVector<int> returnMe;
+    for (int j = 0; j<particles.size(); j++){
+        if (i != j && (particles[i]->m_Position - particles[j]->m_Position).length() < radius)
+            returnMe.push_back(j);
     }
+    return returnMe;
 }
 
-void Particle::positionUpdate(Particle::SOLVER &solver, QVector<Particle*> &particles, int &i, int &dim, std::pair<int, int> &size, float kD){
+
+void Particle::forceUpdate(QVector<Particle*> &particles, int &i, Octree &myOctree){
+    //Find neighboors
+    QVector<int> neighboors = getParticleNeighboorhood(particles, i);
+
+    //********
+
+    m_Force = QVector3D(0, 0, 0);
+
+    //Compute density force
+    float pi = neighboors.size()*m_Mass;
+
+    //Compute pressure force
+
+
+    //Compute viscosity force
+
+}
+
+void Particle::positionUpdate(){
     float  elapsedTime = .03f; //fixed timestep
     QVector3D lastPosition = m_Position;
 
-        /* SOLVERS START HERE */
-    if (solver == Particle::EULER){
-        m_Velocity += m_Force * elapsedTime;
-        m_Position += elapsedTime * m_Velocity;
-    }
-    else if (solver == Particle::VERLET){
-        if (!lp){
-            m_Position += elapsedTime * m_Velocity + 0.5*m_Force*elapsedTime*elapsedTime;
-            lp = true;
-        } else {
-            m_Velocity = (m_Position - m_LastPosition) /elapsedTime;
-            m_Position += kD*(m_Position - m_LastPosition)+m_Force*elapsedTime*elapsedTime;
-        }
+    /* SOLVERS START HERE */
+    if (!lp){
+        m_Position += elapsedTime * m_Velocity + 0.5*m_Force*elapsedTime*elapsedTime;
+        lp = true;
+    } else {
+        m_Velocity = (m_Position - m_LastPosition) /elapsedTime;
+        m_Position += (m_Position - m_LastPosition)+m_Force*elapsedTime*elapsedTime;
     }
     m_LastPosition = lastPosition;
-
-    /* RESTRICTION FIXING */
-    if (dim == 1) fixPrticleSpacing(particles, i);
 }
 
 void Particle::collsionCheck(QVector<planeCollider> &planes, QVector<triangleCollider> &triangles, QVector<sphereCollider> &spheres){
@@ -96,6 +64,7 @@ void Particle::collsionCheck(QVector<planeCollider> &planes, QVector<triangleCol
             m_Position = nD.first; m_Velocity = nD.second;
         }
     }
+
     //triangles
     for (int i = 0; i<triangles.size(); i++){
         bool check = Collider::pointTriCollision(m_LastPosition, m_Position, triangles[i]);
@@ -115,7 +84,9 @@ void Particle::collsionCheck(QVector<planeCollider> &planes, QVector<triangleCol
             m_Position = nD.first; m_Velocity = nD.second;
         }
     }
+
 }
+
 
 /* CREATING THE PARTICLE/ BUFFERS */
 // Plane
@@ -178,125 +149,13 @@ void Particle::Render(QOpenGLFunctions &gl, QOpenGLShaderProgram *program){
 
 //****************************************************
 
-void Particle::fixPrticleSpacing(QVector<Particle*> &particles, int &i){
-    float mod = 1.8f;
-    if (i > 0){
-        QVector3D p2p1 = particles[i-1]->m_Position - m_Position;
-        if (p2p1.length() > sSpring * mod){ //if distance between particles is bigger than initil distance
-            m_Position = particles[i-1]->m_Position - p2p1.normalized() * sSpring * mod;
-        }
-    }
-}
-
-void Particle::fixClothSpacing(QVector<Particle*> &particles, int &i, std::pair<int, int> size, Particle::ROLE role){
-    float mod = 1.3f;
-    float sz;
-    if(role == Particle::STRETCH) sz = sSpring;
-    if(role == Particle::SHEER) sz = sqrt((sSpring*sSpring)*2);
-
-    QVector<int> ngt = neighborhoodForFabric(role, i, size);
-    for (int j = 0; j<ngt.size(); j++){
-        QVector3D p1p2 = particles[ngt[j]]->m_Position - m_Position;
-        if (p1p2.length() > sz * mod){ //if distance between particles is bigger than initil distance
-        QVector3D midPoint = m_Position + p1p2/2;
-        particles[ngt[j]]->m_Position = midPoint + p1p2.normalized() * sz * mod/2;
-        m_Position = midPoint - p1p2.normalized() * sz * mod/2;
-        }
-    }
-
-}
-
-
-std::pair<int,int> index2grid(int i, std::pair<int,int> &size) {
-    return std::make_pair(i/size.second, i%size.second);
-}
-
-int grid2index(std::pair<int,int> &p, std::pair<int,int> &size) {
-    return p.second + p.first * size.second;
-}
-
-bool isInGrid(std::pair<int,int> &p, std::pair<int,int> &size) {
-    return p.first >= 0 and p.second >= 0 and
-           p.first < size.first and p.second < size.second;
-}
-
-typedef std::pair<int,int> ii;
-
-QVector<int> Particle::neighborhoodForFabric(Particle::ROLE role, int &i, std::pair<int, int> &size){
-    QVector<int> neighbors;
-
-    ii p = index2grid(i, size);
-    if (role == Particle::ROLE::STRETCH) {
-        ii p2 = p;
-        p2.first += 1;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-
-        p2 = p;
-        p2.first -= 1;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-
-        p2 = p;
-        p2.second -= 1;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-
-        p2 = p;
-        p2.second += 1;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-    }
-
-    else if (role == Particle::ROLE::SHEER) {
-        ii p2 = p;
-        p2.first += 1;
-        p2.second += 1;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-
-        p2 = p;
-        p2.first -= 1;
-        p2.second += 1;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-
-        p2 = p;
-        p2.first += 1;
-        p2.second -= 1;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-
-        p2 = p;
-        p2.first -= 1;
-        p2.second -= 1;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-    }
-
-    else if (role == Particle::ROLE::BEND) {
-        ii p2 = p;
-        p2.first += 2;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-
-        p2 = p;
-        p2.first -= 2;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-
-        p2 = p;
-        p2.second += 2;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-
-        p2 = p;
-        p2.second -= 2;
-        if (isInGrid(p2, size)) neighbors.append(grid2index(p2, size));
-    }
-
-    return neighbors;
-}
-
-//****************************************************
-
-Particle::Particle(QVector3D position, float radius, QVector3D color, QVector3D velocity, QOpenGLShaderProgram *prog, float s){
+Particle::Particle(QVector3D position, float radius, QVector3D color, QVector3D velocity, QOpenGLShaderProgram *prog, float mass){
     m_Position = position;
     m_Velocity = velocity;
     m_Position = position;
     m_Radius = radius;
     m_Color = color;
-
-    sSpring = s;
+    m_Mass = mass;
 
     if(!BuildPlane(prog)){
         std::cout << "Could not create particle" << std::endl;
