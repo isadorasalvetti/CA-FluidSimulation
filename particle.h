@@ -15,7 +15,8 @@
 
 class Particle{
 public:
-    Particle(QVector3D position, float radius, QVector3D color, QVector3D velocity, QOpenGLShaderProgram *prog, float s);
+    Particle(QVector3D position, float radius, QVector3D color, QVector3D velocity,
+             QOpenGLShaderProgram *prog, float mass);
     Particle(){}
     ~Particle();
 
@@ -31,12 +32,14 @@ public:
     QVector3D m_Velocity; // Current particle velocity
     QVector3D m_Color;    // Particle color
     QVector3D m_Force;
-    float m_Weight;
+    float m_Dnst;
+    float m_Mass;
     float m_Radius; //size of the particle
 
     //Neighborhood
     void Render(QOpenGLFunctions &gl, QOpenGLShaderProgram *program);
     void forceUpdate(QVector<Particle*> &particles, int &i, Octree &myOctree);
+    void densityUpdate(QVector<Particle*> &particles, int &i);
     void collsionCheck(QVector<planeCollider> &planes, QVector<triangleCollider> &triangles, QVector<sphereCollider> &spheres);
     void positionUpdate();
 

@@ -4,37 +4,67 @@
 
 // Force and Position update
 //****************************************************
-const QVector3D G(0, -3.8f, 0);
+const float PI = 3.1415;
+const QVector3D G(0, -9.8f, 0);
+const float myH = 2.5;
+
+//Pressure constants
+const float refDnst = 1; //Reference density
+const float Cs = 343; //Speed of sound
 
 
 // Neighboorhood
 //****************************************************
-QVector<int> getParticleNeighboorhood(QVector<Particle*> &particles, int &i){
+QVector<float> getParticleNeighboorhood(QVector<Particle*> &particles, int &i){
     float radius = 1;
-    QVector<int> returnMe;
+    QVector<float> returnMe;
     for (int j = 0; j<particles.size(); j++){
-        if (i != j && (particles[i]->m_Position - particles[j]->m_Position).length() < radius)
-            returnMe.push_back(j);
+        float len = (particles[i]->m_Position - particles[j]->m_Position).length();
+        if (i != j && len < radius)
+            returnMe.push_back(len);
     }
     return returnMe;
 }
 
+float kernelFunction(float r, const float &h){
+    return (315/(64*PI*pow(h,9))) * pow((h*h-r*r), 3);
+}
+
+QVector3D kernelFunction1(QVector3D &r, const float &h){
+    return (-945/(32*PI*pow(h,9))) * pow((h*h-r.length()*r.length()), 2) * r;
+}
+
+QVector3D kernelFunction2(QVector3D &r, const float &h){
+    return (-945/(32*PI*pow(h,9))) * pow((h*h-r.length()*r.length()), 2) * r;
+}
+
+void Particle::densityUpdate(QVector<Particle*> &particles, int &i){
+    QVector<float> neighboorRadius;
+    //Compute density
+    m_Dnst = 0;
+    for (int i = 0; i < particles.size(); i++){
+        QVector3D r = (particles[i]->m_Position - m_Position);
+        m_Dnst += kernelFunction(r.length(), myH); //change density
+    }
+    //Also update pressure
+    m_Prs = Cs*Cs*(m_Dnst - refDnst);
+}
 
 void Particle::forceUpdate(QVector<Particle*> &particles, int &i, Octree &myOctree){
-    //Find neighboors
-    QVector<int> neighboors = getParticleNeighboorhood(particles, i);
-
-    //********
-
     m_Force = QVector3D(0, 0, 0);
 
-    //Compute density force
-    float pi = neighboors.size()*m_Mass;
-
-    //Compute pressure force
-
-
-    //Compute viscosity force
+    QVector3D aPressure (0, 0, 0);
+    QVector3D aViscosity (0, 0, 0);
+    for (int i = 0; i < particles.size(); i++){
+        Particle *pj = particles[i];
+        QVector3D r = (pj->m_Position - m_Position);
+        if (r.length() < myH){
+            aPressure += -m_Mass * ((m_Dnst/m_Prs) + (pj->m_Dnst/pj->m_Prs))
+                                 * kernelFunction1(r, myH);
+            //aViscosity +=
+        }
+        delete pj;
+    }
 
 }
 
