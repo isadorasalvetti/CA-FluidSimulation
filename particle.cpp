@@ -6,11 +6,13 @@
 //****************************************************
 const float PI = 3.1415;
 const QVector3D G(0, -9.8f, 0);
-const float myH = 2.5;
+const float myH = 0.5;
 
 //Pressure constants
-const float refDnst = 1; //Reference density
-const float Cs = 343; //Speed of sound
+const float refDnst = 1000; //Reference density
+
+//Viscosity constants
+float u = 0.001f;
 
 
 // Neighboorhood
@@ -30,42 +32,43 @@ float kernelFunction(float r, const float &h){
     return (315/(64*PI*pow(h,9))) * pow((h*h-r*r), 3);
 }
 
-QVector3D kernelFunction1(QVector3D &r, const float &h){
-    return (-945/(32*PI*pow(h,9))) * pow((h*h-r.length()*r.length()), 2) * r;
+float kernelFunction1(float &r, const float &h){
+    return (-945/(32*PI*pow(h,9))) * pow((h*h-r*r), 2) * r;
 }
 
-QVector3D kernelFunction2(QVector3D &r, const float &h){
-    return (-945/(32*PI*pow(h,9))) * pow((h*h-r.length()*r.length()), 2) * r;
+float kernelFunction2(float &r, const float &h){
+    return (945/(8*PI*pow(h,9))) * pow((h*h-r*r), 2) * (r*r - (3/4)*(h*h-r*r)) * r;
 }
 
 void Particle::densityUpdate(QVector<Particle*> &particles, int &i){
+    const float Cs = 1-(10*(m_Mass/100)); //Speed of sound
     QVector<float> neighboorRadius;
     //Compute density
     m_Dnst = 0;
     for (int i = 0; i < particles.size(); i++){
         QVector3D r = (particles[i]->m_Position - m_Position);
-        m_Dnst += kernelFunction(r.length(), myH); //change density
+        float rLen = r.length();
+        m_Dnst += kernelFunction(rLen, myH); //change density
     }
     //Also update pressure
     m_Prs = Cs*Cs*(m_Dnst - refDnst);
 }
 
 void Particle::forceUpdate(QVector<Particle*> &particles, int &i, Octree &myOctree){
-    m_Force = QVector3D(0, 0, 0);
-
     QVector3D aPressure (0, 0, 0);
     QVector3D aViscosity (0, 0, 0);
     for (int i = 0; i < particles.size(); i++){
         Particle *pj = particles[i];
         QVector3D r = (pj->m_Position - m_Position);
-        if (r.length() < myH){
-            aPressure += -m_Mass * ((m_Dnst/m_Prs) + (pj->m_Dnst/pj->m_Prs))
-                                 * kernelFunction1(r, myH);
-            //aViscosity +=
+        float rLen = r.length();
+        if (rLen < myH){
+            aPressure += -m_Mass * ((m_Dnst/(m_Prs*m_Prs)) + (pj->m_Dnst/(pj->m_Prs*pj->m_Prs)))
+                                 * kernelFunction(rLen, myH) * r;
+            aViscosity += u * m_Mass * ((pj->m_Velocity-m_Velocity)/(pj->m_Dnst * m_Dnst))
+                                     * kernelFunction(rLen, myH);
         }
-        delete pj;
     }
-
+    m_Acceleration = aPressure + aViscosity + G*m_Mass;
 }
 
 void Particle::positionUpdate(){
@@ -74,11 +77,11 @@ void Particle::positionUpdate(){
 
     /* SOLVERS START HERE */
     if (!lp){
-        m_Position += elapsedTime * m_Velocity + 0.5*m_Force*elapsedTime*elapsedTime;
+        m_Position += elapsedTime * m_Velocity + 0.5*m_Acceleration*elapsedTime*elapsedTime;
         lp = true;
     } else {
         m_Velocity = (m_Position - m_LastPosition) /elapsedTime;
-        m_Position += (m_Position - m_LastPosition)+m_Force*elapsedTime*elapsedTime;
+        m_Position += (m_Position - m_LastPosition)+m_Acceleration*elapsedTime*elapsedTime;
     }
     m_LastPosition = lastPosition;
 }

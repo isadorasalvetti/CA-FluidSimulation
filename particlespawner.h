@@ -17,7 +17,7 @@ public:
     void renderParticles(QOpenGLFunctions &gl, QOpenGLShaderProgram *prog);
     void updateParticles();
 
-    QVector3D size = QVector3D(10, 3, 5);
+    QVector3D size = QVector3D(10, 6, 8);
     float spacing = 0.10f;
 
     Octree myOctree;
