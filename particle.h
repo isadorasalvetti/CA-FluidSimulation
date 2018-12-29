@@ -38,6 +38,9 @@ public:
     float m_Radius; //size of the particle
 
     //Neighborhood
+    void updateNighborhoodIndices(Octree &oct, int &i);
+    QVector<int> particleNeighboorsIndex;
+
     void Render(QOpenGLFunctions &gl, QOpenGLShaderProgram *program);
     void forceUpdate(QVector<Particle*> &particles, int &i, Octree &myOctree);
     void densityUpdate(QVector<Particle*> &particles, int &i);

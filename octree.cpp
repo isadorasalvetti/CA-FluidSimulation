@@ -61,24 +61,48 @@ bool Octree::validateLocation(QVector3D &pos, int &i){
     return false;
 }
 
+bool Octree::validateLoc(QVector3D &pos){
+    if (pos.x() < rezX and pos.y() < rezY and pos.z() < rezZ and
+        pos.x() >= 0 and pos.y() >= 0 and pos.z() >= 0)
+    return true;
+    else return false;
+}
+
 //****************************
 
 QVector<int> Octree::getNeighboorhoodCandidates(int i){
     int vi = particleToLocation[i];
+    QVector3D pvi = intToLoc(vi);
     QVector<int> surroundingVoxels;
 
+    QVector3D p;
+
     //Z voxels
-    if (vi >= 1) surroundingVoxels.append(vi - 1);
-    surroundingVoxels.append(vi + 1);
+    QVector3D pvj = QVector3D (pvi[0], pvi[1], pvi[2]+1);
+    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
+    pvj = QVector3D (pvi[0], pvi[1], pvi[2]-1);
+    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
 
     //Y voxels
-    surroundingVoxels.append(vi + rezZ);
-    surroundingVoxels.append(vi - rezZ);
+    pvj = QVector3D (pvi[0], pvi[1]+1, pvi[2]);
+    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
+    pvj = QVector3D (pvi[0], pvi[1]-1, pvi[2]);
+    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
 
     //X voxels
-    surroundingVoxels.append(vi + rezZ*rezY);
-    surroundingVoxels.append(vi - rezZ*rezY);
+    pvj = QVector3D (pvi[0]+1, pvi[1], pvi[2]);
+    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
+    pvj = QVector3D (pvi[0]-1, pvi[1], pvi[2]);
+    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
 
+    QVector<int> particlesInSVoxels; particlesInSVoxels.reserve(particleAmount);
+    for (int i =0; i < surroundingVoxels.size(); i++){
+        int v = surroundingVoxels[i];
+        for (int p = 0; p < octreeToParticles[v].size(); p++){
+            particlesInSVoxels.push_back(octreeToParticles[v][p]);
+        }
+    }
+    return  particlesInSVoxels;
 }
 
 

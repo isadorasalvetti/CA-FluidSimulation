@@ -23,6 +23,7 @@ public:
     void buildOctree();
     void addParticleToOctree(QVector3D &pos, int i);
     bool validateLocation(QVector3D &pos, int &i);
+    bool validateLoc(QVector3D &pos);
 
     QVector<int> getNeighboorhoodCandidates (int i);
 

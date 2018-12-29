@@ -40,13 +40,18 @@ float kernelFunction2(float &r, const float &h){
     return (945/(8*PI*pow(h,9))) * pow((h*h-r*r), 2) * (r*r - (3/4)*(h*h-r*r)) * r;
 }
 
+void Particle::updateNighborhoodIndices(Octree &oct, int &i){
+    particleNeighboorsIndex = oct.getNeighboorhoodCandidates(i);
+}
+
 void Particle::densityUpdate(QVector<Particle*> &particles, int &i){
     const float Cs = 1-(10*(m_Mass/100)); //Speed of sound
     QVector<float> neighboorRadius;
     //Compute density
     m_Dnst = 0;
-    for (int i = 0; i < particles.size(); i++){
-        QVector3D r = (particles[i]->m_Position - m_Position);
+    for (int i = 0; i < particleNeighboorsIndex.size(); i++){
+        int p = particleNeighboorsIndex[i];
+        QVector3D r = (particles[p]->m_Position - m_Position);
         float rLen = r.length();
         m_Dnst += kernelFunction(rLen, myH); //change density
     }
@@ -57,8 +62,9 @@ void Particle::densityUpdate(QVector<Particle*> &particles, int &i){
 void Particle::forceUpdate(QVector<Particle*> &particles, int &i, Octree &myOctree){
     QVector3D aPressure (0, 0, 0);
     QVector3D aViscosity (0, 0, 0);
-    for (int i = 0; i < particles.size(); i++){
-        Particle *pj = particles[i];
+    for (int i = 0; i < particleNeighboorsIndex.size(); i++){
+        int p = particleNeighboorsIndex[i];
+        Particle *pj = particles[p];
         QVector3D r = (pj->m_Position - m_Position);
         float rLen = r.length();
         if (rLen < myH){

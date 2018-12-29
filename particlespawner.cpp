@@ -5,17 +5,17 @@ void particleSpawner::init(QOpenGLShaderProgram *prog){
     particles.clear();
 
     //generate new ones
-    float border = spacing/2;
+    float border = 0.02;
     genBoundaryCollider(planes, border);
 
     myOctree = Octree(
-            QVector3D(-size[0]*spacing/2 + border, -size[1]*spacing/2 + border, -size[2]*spacing/2 + border),
+            QVector3D(-size[0]*spacing/2 - border, -size[1]*spacing/2 - border, -size[2]*spacing/2 - border),
             QVector3D(size[0]*spacing/2 + border, size[1]*spacing/2 + border, size[2]*spacing/2 + border),
             size[0]*size[1]*size[2]
             );
     myOctree.buildOctree();
 
-    genBoundaryCollider(planes, 0.1);
+    genBoundaryCollider(planes, 0.8);
 
     program = prog;
     genParticle();
@@ -28,7 +28,7 @@ void particleSpawner::updateColliders(QVector<planeCollider> &p, QVector<triangl
 
 void particleSpawner::genBoundaryCollider(QVector<planeCollider> &p, float border){
 /* Generate colider around the spawned particles*/
-   QVector3D min (-size[0]*spacing/2 + border, -size[1]*spacing/2 + border, -size[2]*spacing/2 + border);
+   QVector3D min (-size[0]*spacing/2 - border, -size[1]*spacing/2 - border, -size[2]*spacing/2 - border);
    QVector3D max (size[0]*spacing/2 + border, size[1]*spacing/2 + border, size[2]*spacing/2 + border);
 
    QVector3D p2 = QVector3D(min[0], max[1], max[2]); //left, top, front
@@ -86,19 +86,20 @@ void particleSpawner::genParticle(){
                 QVector3D fcolor = QVector3D((float)i/(size[0]-1), (float) j/(size[1]-1), (float)k/(size[0]-1));
                 Particle *p = new Particle(position, radius, fcolor, velocity, program, mass);
 
-                //myOctree.addParticleToOctree(position, i*size[2]*size[1] + j*size[2] + k);
+                myOctree.addParticleToOctree(position, i*size[2]*size[1] + j*size[2] + k);
                 particles.push_back(p);
-
             }
         }
     }
 }
 
-void particleSpawner::updateParticles(){
+void particleSpawner::updateParticles(){    
+    for(int i = 0; i<particles.size(); i++){
+        particles[i]->updateNighborhoodIndices(myOctree, i);
+    }
     for(int i = 0; i<particles.size(); i++){
         particles[i]->densityUpdate(particles, i);
     }
-    //Update particles positions
     for(int i = 0; i<particles.size(); i++){
         particles[i]->forceUpdate(particles, i, myOctree);
     }
