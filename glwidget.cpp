@@ -56,11 +56,11 @@ void GLWidget::initializeGL()
             QApplication::quit();
     }
 
-    mesh.addColision(planeColliders);
+    //mesh.addColision(planeColliders);
     //objectColliders.addColision(triColliders, sphereColliders);
 
     spawner.init(program_particle);
-    spawner.updateColliders(planeColliders, triColliders, sphereColliders);
+    //spawner.updateColliders(planeColliders, triColliders, sphereColliders);
     timer = new Timer(this, &spawner);
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);

@@ -7,7 +7,7 @@
 class Octree
 {
 public:
-    float voxelSize = .5f;
+    float voxelSize = .1f;
     float particleAmount;
     std::pair<QVector3D, QVector3D> boundingBox;
 
@@ -21,6 +21,7 @@ public:
     Octree(){}
 
     void buildOctree();
+    void resetOctree();
     void addParticleToOctree(QVector3D &pos, int i);
     bool validateLocation(QVector3D &pos, int &i);
     bool validateLoc(QVector3D &pos);

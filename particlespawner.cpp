@@ -5,7 +5,7 @@ void particleSpawner::init(QOpenGLShaderProgram *prog){
     particles.clear();
 
     //generate new ones
-    float border = 0.02;
+    float border = 0.5;
     genBoundaryCollider(planes, border);
 
     myOctree = Octree(
@@ -14,8 +14,6 @@ void particleSpawner::init(QOpenGLShaderProgram *prog){
             size[0]*size[1]*size[2]
             );
     myOctree.buildOctree();
-
-    genBoundaryCollider(planes, 0.8);
 
     program = prog;
     genParticle();
@@ -31,39 +29,23 @@ void particleSpawner::genBoundaryCollider(QVector<planeCollider> &p, float borde
    QVector3D min (-size[0]*spacing/2 - border, -size[1]*spacing/2 - border, -size[2]*spacing/2 - border);
    QVector3D max (size[0]*spacing/2 + border, size[1]*spacing/2 + border, size[2]*spacing/2 + border);
 
-   QVector3D p2 = QVector3D(min[0], max[1], max[2]); //left, top, front
-   QVector3D p3 = QVector3D(min[0], min[1], max[2]); //left, bottom, front
-   QVector3D p4 = QVector3D(min[0], max[1], min[2]); //left, top, back
-
-   //left
-   QVector3D normal = (p2-max).normalized();
-   float d = -QVector3D::dotProduct(normal, min);
+   //left, right
+   QVector3D normal = QVector3D(-1, 0, 0);
+   float d = min.x();
    p.append(planeCollider (normal, d, 0.15f));
+   p.append(planeCollider (-normal, -d, 0.15f));
 
-   //back
-   normal = (p4-p2).normalized();
-   d = -QVector3D::dotProduct(normal, min);
+   //back, front
+   normal = QVector3D(0, 0, -1);
+   d = min.z();
    p.append(planeCollider (normal, d, 0.15f));
+   p.append(planeCollider (-normal, -d, -0.15f));
 
-   //bottom
-   normal = (p3-p2).normalized();
-   d = -QVector3D::dotProduct(normal, min);
+   //bottom, top
+   normal = QVector3D(0,-1,0);
+   d = min.y();
    p.append(planeCollider (normal, d, 0.15f));
-
-   //right
-   normal = (p2-max).normalized();
-   d = -QVector3D::dotProduct(normal, max);
-   p.append(planeCollider (normal, d, 0.15f));
-
-   //front
-   normal = (p4-p2).normalized();
-   d = -QVector3D::dotProduct(normal, max);
-   p.append(planeCollider (normal, d, 0.15f));
-
-   //top
-   normal = (p3-p2).normalized();
-   d = -QVector3D::dotProduct(normal, max);
-   p.append(planeCollider (normal, d, 0.15f));
+   p.append(planeCollider (-normal, -d, 0.15f));
 }
 
 void particleSpawner::renderParticles(QOpenGLFunctions &gl, QOpenGLShaderProgram *prog){
@@ -110,6 +92,10 @@ void particleSpawner::updateParticles(){
         particles[i]->collsionCheck(planes, tris, spheres);
     }
 
+    myOctree.resetOctree();
+    for(int i = 0; i<particles.size(); i++){
+        myOctree.addParticleToOctree(particles[i]->m_Position, i);
+    }
 }
 
 particleSpawner::~particleSpawner(){

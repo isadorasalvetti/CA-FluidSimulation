@@ -31,9 +31,9 @@ public:
     QVector3D m_Position; // Center point of particle
     QVector3D m_Velocity; // Current particle velocity
     QVector3D m_Color;    // Particle color
-    QVector3D m_Acceleration;
-    float m_Dnst; //density
-    float m_Prs; //pressure
+    QVector3D m_Acceleration = QVector3D(0,0,0);
+    float m_Dnst = 0; //density
+    float m_Prs = 0; //pressure
     float m_Mass;
     float m_Radius; //size of the particle
 

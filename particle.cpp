@@ -1,4 +1,4 @@
-#include "particle.h"
+﻿#include "particle.h"
 #include <QOpenGLFunctions>
 #include <math.h>
 
@@ -6,7 +6,7 @@
 //****************************************************
 const float PI = 3.1415;
 const QVector3D G(0, -9.8f, 0);
-const float myH = 0.5;
+const float myH = 0.1;
 
 //Pressure constants
 const float refDnst = 1000; //Reference density
@@ -17,43 +17,46 @@ float u = 0.001f;
 
 // Neighboorhood
 //****************************************************
-QVector<float> getParticleNeighboorhood(QVector<Particle*> &particles, int &i){
-    float radius = 1;
-    QVector<float> returnMe;
+QVector<int> getParticleNeighboorhood(QVector<Particle*> &particles, int &i){
+    float radius = myH;
+    QVector<int> returnMe;
     for (int j = 0; j<particles.size(); j++){
         float len = (particles[i]->m_Position - particles[j]->m_Position).length();
         if (i != j && len < radius)
-            returnMe.push_back(len);
+            returnMe.push_back(j);
     }
     return returnMe;
 }
 
-float kernelFunction(float r, const float &h){
-    return (315/(64*PI*pow(h,9))) * pow((h*h-r*r), 3);
+float Poly6k(float &rSqr, const float &h){
+    return (315/(64*PI*pow(h,9))) * pow((h*h-rSqr), 3);
 }
 
-float kernelFunction1(float &r, const float &h){
+float Poly6Grad(float &r, const float &h){
     return (-945/(32*PI*pow(h,9))) * pow((h*h-r*r), 2) * r;
 }
 
-float kernelFunction2(float &r, const float &h){
+float Poly6Lapl(float &r, const float &h){
     return (945/(8*PI*pow(h,9))) * pow((h*h-r*r), 2) * (r*r - (3/4)*(h*h-r*r)) * r;
 }
 
 void Particle::updateNighborhoodIndices(Octree &oct, int &i){
-    particleNeighboorsIndex = oct.getNeighboorhoodCandidates(i);
+    //particleNeighboorsIndex = oct.getNeighboorhoodCandidates(i);
 }
 
 void Particle::densityUpdate(QVector<Particle*> &particles, int &i){
-    const float Cs = 1-(10*(m_Mass/100)); //Speed of sound
-    QVector<float> neighboorRadius;
+    const float Cs = 1500; //Speed of sound
     //Compute density
     m_Dnst = 0;
-    for (int i = 0; i < particleNeighboorsIndex.size(); i++){
-        int p = particleNeighboorsIndex[i];
+    QVector<int> particleNeighboor = getParticleNeighboorhood(particles, i);
+    for (int i = 0; i < particleNeighboor.size(); i++){
+        int p = particleNeighboor[i];
         QVector3D r = (particles[p]->m_Position - m_Position);
-        float rLen = r.length();
-        m_Dnst += kernelFunction(rLen, myH); //change density
+        float rLen = r.lengthSquared();
+        if (rLen < myH){
+            float k = abs(Poly6k(rLen, myH));
+            m_Dnst += m_Mass*k; //change density
+        }
     }
     //Also update pressure
     m_Prs = Cs*Cs*(m_Dnst - refDnst);
@@ -62,23 +65,30 @@ void Particle::densityUpdate(QVector<Particle*> &particles, int &i){
 void Particle::forceUpdate(QVector<Particle*> &particles, int &i, Octree &myOctree){
     QVector3D aPressure (0, 0, 0);
     QVector3D aViscosity (0, 0, 0);
-    for (int i = 0; i < particleNeighboorsIndex.size(); i++){
-        int p = particleNeighboorsIndex[i];
+
+    float denon1, denon2;
+
+    for (int j = 0; j < particleNeighboorsIndex.size(); j++){
+        int p = particleNeighboorsIndex[j];
         Particle *pj = particles[p];
         QVector3D r = (pj->m_Position - m_Position);
         float rLen = r.length();
         if (rLen < myH){
-            aPressure += -m_Mass * ((m_Dnst/(m_Prs*m_Prs)) + (pj->m_Dnst/(pj->m_Prs*pj->m_Prs)))
-                                 * kernelFunction(rLen, myH) * r;
-            aViscosity += u * m_Mass * ((pj->m_Velocity-m_Velocity)/(pj->m_Dnst * m_Dnst))
-                                     * kernelFunction(rLen, myH);
+            denon1 = (m_Dnst*m_Dnst);
+            denon2 = (pj->m_Dnst*pj->m_Dnst);
+            aPressure += -m_Mass * (m_Prs/denon1 + pj->m_Prs/denon2)
+                                 * Poly6Grad(rLen, myH) * r;
+
+            denon1 = (pj->m_Dnst * m_Dnst);
+            aViscosity += u * m_Mass * ((pj->m_Velocity-m_Velocity)/denon1)
+                                     * Poly6Lapl(rLen, myH);
         }
     }
-    m_Acceleration = aPressure + aViscosity + G*m_Mass;
+    m_Acceleration = aPressure + aViscosity + G;
 }
 
 void Particle::positionUpdate(){
-    float  elapsedTime = .03f; //fixed timestep
+    float  elapsedTime = .001f; //fixed timestep
     QVector3D lastPosition = m_Position;
 
     /* SOLVERS START HERE */
@@ -191,7 +201,6 @@ void Particle::Render(QOpenGLFunctions &gl, QOpenGLShaderProgram *program){
 Particle::Particle(QVector3D position, float radius, QVector3D color, QVector3D velocity, QOpenGLShaderProgram *prog, float mass){
     m_Position = position;
     m_Velocity = velocity;
-    m_Position = position;
     m_Radius = radius;
     m_Color = color;
     m_Mass = mass;

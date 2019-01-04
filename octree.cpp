@@ -10,9 +10,9 @@ void Octree::buildOctree(){
     float sizeY = boundingBox.second.y() - boundingBox.first.y();
     float sizeZ = boundingBox.second.z() - boundingBox.first.z();
 
-    rezX = static_cast<int>(roundf(sizeX/voxelSize));
-    rezY = static_cast<int>(roundf(sizeY/voxelSize));
-    rezZ = static_cast<int>(roundf(sizeZ/voxelSize));
+    rezX = static_cast<int>(sizeX/voxelSize)+2;
+    rezY = static_cast<int>(sizeY/voxelSize)+2;
+    rezZ = static_cast<int>(sizeZ/voxelSize)+2;
 
     octreeToParticles.resize(rezX*rezY*rezZ);
     particleToLocation.resize(particleAmount);
@@ -26,7 +26,10 @@ int Octree::locToIndex(int locx, int locy, int locz){
 }
 
 QVector3D Octree::intToLoc(int index){
-    return QVector3D(0,0,0);
+    int x = index/(rezZ*rezY);
+    int y = (index-x*rezZ*rezY)/(rezZ);
+    int z = index - x*(rezZ*rezY) - y*(rezZ);
+    return QVector3D(x,y,z);
 }
 
 //**************************
@@ -42,11 +45,16 @@ void Octree::addParticleToOctree(QVector3D &pos, int i){
     particleToLocation[i] = octreeIndex;
 }
 
+void Octree::resetOctree(){
+    for (int i =0; i < octreeToParticles.size(); i++)
+        octreeToParticles[i].clear();
+}
+
 bool Octree::validateLocation(QVector3D &pos, int &i){
     /* Verify if particle is the correct voxel, if not, reassign it. */
-    int pX = static_cast<int>(pos.x()/voxelSize);
-    int pY = static_cast<int>(pos.y()/voxelSize);
-    int pZ = static_cast<int>(pos.z()/voxelSize);
+    int pX = static_cast<int>(pos.x()-boundingBox.first.x()/voxelSize);
+    int pY = static_cast<int>(pos.y()-boundingBox.first.y()/voxelSize);
+    int pZ = static_cast<int>(pos.z()-boundingBox.first.z()/voxelSize);
 
     int newLocation = locToIndex(pX, pY, pZ);
     int currentLoc = particleToLocation[i];
@@ -75,26 +83,13 @@ QVector<int> Octree::getNeighboorhoodCandidates(int i){
     QVector3D pvi = intToLoc(vi);
     QVector<int> surroundingVoxels;
 
-    QVector3D p;
-
     //Z voxels
-    QVector3D pvj = QVector3D (pvi[0], pvi[1], pvi[2]+1);
-    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
-    pvj = QVector3D (pvi[0], pvi[1], pvi[2]-1);
-    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
-
-    //Y voxels
-    pvj = QVector3D (pvi[0], pvi[1]+1, pvi[2]);
-    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
-    pvj = QVector3D (pvi[0], pvi[1]-1, pvi[2]);
-    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
-
-    //X voxels
-    pvj = QVector3D (pvi[0]+1, pvi[1], pvi[2]);
-    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
-    pvj = QVector3D (pvi[0]-1, pvi[1], pvi[2]);
-    if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
-
+    for (int i = -1; i <= 1; i++)
+        for (int j = -1; j <= 1; j++)
+            for (int k = -1; k <= 1; k++){
+                QVector3D pvj = QVector3D (pvi[0]+i, pvi[1]+j, pvi[2]+k);
+                if (validateLoc(pvj)) surroundingVoxels.append(locToIndex(pvj[0], pvj[1], pvj[2]));
+            }
     QVector<int> particlesInSVoxels; particlesInSVoxels.reserve(particleAmount);
     for (int i =0; i < surroundingVoxels.size(); i++){
         int v = surroundingVoxels[i];
