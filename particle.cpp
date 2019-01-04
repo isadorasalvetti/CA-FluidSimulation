@@ -49,11 +49,11 @@ void Particle::densityUpdate(QVector<Particle*> &particles, int &i){
     //Compute density
     m_Dnst = 0;
     QVector<int> particleNeighboor = getParticleNeighboorhood(particles, i);
-    for (int i = 0; i < particleNeighboor.size(); i++){
-        int p = particleNeighboor[i];
+    for (int i = 0; i < particleNeighboorsIndex.size(); i++){
+        int p = particleNeighboorsIndex[i];
         QVector3D r = (particles[p]->m_Position - m_Position);
         float rLen = r.lengthSquared();
-        if (rLen < myH){
+        if (rLen < myH*myH){
             float k = abs(Poly6k(rLen, myH));
             m_Dnst += m_Mass*k; //change density
         }
