@@ -42,7 +42,7 @@ public:
     QVector<int> particleNeighboorsIndex;
 
     void Render(QOpenGLFunctions &gl, QOpenGLShaderProgram *program);
-    void forceUpdate(QVector<Particle*> &particles, int &i, Octree &myOctree);
+    void forceUpdate(QVector<Particle*> &particles);
     void densityUpdate(QVector<Particle*> &particles, int &i);
     void collsionCheck(QVector<planeCollider> &planes, QVector<triangleCollider> &triangles, QVector<sphereCollider> &spheres);
     void positionUpdate();

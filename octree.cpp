@@ -10,9 +10,9 @@ void Octree::buildOctree(){
     float sizeY = boundingBox.second.y() - boundingBox.first.y();
     float sizeZ = boundingBox.second.z() - boundingBox.first.z();
 
-    rezX = static_cast<int>(sizeX/voxelSize)+2;
-    rezY = static_cast<int>(sizeY/voxelSize)+2;
-    rezZ = static_cast<int>(sizeZ/voxelSize)+2;
+    rezX = round(sizeX/voxelSize)+4;
+    rezY = round(sizeY/voxelSize)+4;
+    rezZ = round(sizeZ/voxelSize)+4;
 
     octreeToParticles.resize(rezX*rezY*rezZ);
     particleToLocation.resize(particleAmount);
@@ -22,13 +22,14 @@ void Octree::buildOctree(){
 // ************************
 
 int Octree::locToIndex(int locx, int locy, int locz){
-    return locx*rezZ*rezY + locy*rezZ + locz;
+    return (locz * rezX * rezY) + (locy * rezX) + locx;
 }
 
-QVector3D Octree::intToLoc(int index){
-    int x = index/(rezZ*rezY);
-    int y = (index-x*rezZ*rezY)/(rezZ);
-    int z = index - x*(rezZ*rezY) - y*(rezZ);
+QVector3D Octree::intToLoc(int idx){
+    int z = idx / (rezX * rezY);
+    idx -= (z * rezX * rezY);
+    int y = idx / rezX;
+    int x = idx % rezX;
     return QVector3D(x,y,z);
 }
 
@@ -36,9 +37,9 @@ QVector3D Octree::intToLoc(int index){
 
 void Octree::addParticleToOctree(QVector3D &pos, int i){
     /* Places particle in octree voxels based on its position */
-    int pX = static_cast<int>((pos.x() - boundingBox.first.x())/voxelSize);
-    int pY = static_cast<int>((pos.y() - boundingBox.first.y())/voxelSize);
-    int pZ = static_cast<int>((pos.z() - boundingBox.first.z())/voxelSize);
+    int pX = round((pos.x() - boundingBox.first.x())/voxelSize);
+    int pY = round((pos.y() - boundingBox.first.y())/voxelSize);
+    int pZ = round((pos.z() - boundingBox.first.z())/voxelSize);
 
     int octreeIndex = locToIndex(pX, pY, pZ);
     octreeToParticles[octreeIndex].append(i);

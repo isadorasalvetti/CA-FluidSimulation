@@ -68,13 +68,6 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-public slots:
-    void clickSolver();
-    void clickSim();
-    void changekE();
-    void changekD();
-    void clickReset();
-
 private:
     Ui::MainWindow *ui;
     GLWidget *gl;

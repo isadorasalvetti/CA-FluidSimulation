@@ -38,9 +38,11 @@ public:
 class Collider{
 public:
     static bool pointPlaneCollision(const QVector3D &p1, const QVector3D &p2, const planeCollider &plane);
+    static bool pointPlaneCollision(const QVector3D &p1, const planeCollider &plane);
     static bool pointTriCollision(QVector3D p1, QVector3D p2, triangleCollider tri);
     static bool pointSphereCollision(QVector3D p1, sphereCollider sphere);
     static std::pair<QVector3D, QVector3D> updateParticle(QVector3D p2, QVector3D v2, planeCollider plane);
+    static std::pair<QVector3D, QVector3D> updateParticle(QVector3D p2, planeCollider plane);
     static std::pair<QVector3D, QVector3D> updateParticle(QVector3D p2, QVector3D v2, triangleCollider tri);
     static std::pair<QVector3D, QVector3D> updateParticle(QVector3D p2, QVector3D v2, sphereCollider tri);
 

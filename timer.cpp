@@ -5,7 +5,7 @@ Timer::Timer(QOpenGLWidget *s, particleSpawner *sp){
     spawner = sp;
     t = new QTimer(this);
     connect(t, SIGNAL(timeout()), this, SLOT(update()));
-    t->start(20);
+    t->start(10);
 }
 
 void Timer::update(){

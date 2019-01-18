@@ -26,26 +26,25 @@ void particleSpawner::updateColliders(QVector<planeCollider> &p, QVector<triangl
 
 void particleSpawner::genBoundaryCollider(QVector<planeCollider> &p, float border){
 /* Generate colider around the spawned particles*/
-   QVector3D min (-size[0]*spacing/2 - border, -size[1]*spacing/2 - border, -size[2]*spacing/2 - border);
-   QVector3D max (size[0]*spacing/2 + border, size[1]*spacing/2 + border, size[2]*spacing/2 + border);
+   QVector3D min (-size[0]*spacing/2, -size[1]*spacing/2, -size[2]*spacing/2);
 
    //left, right
    QVector3D normal = QVector3D(-1, 0, 0);
    float d = min.x();
-   p.append(planeCollider (normal, d, 0.15f));
-   p.append(planeCollider (-normal, -d, 0.15f));
+   p.append(planeCollider (normal, d-border*2.5, 0.1f));
+   p.append(planeCollider (-normal, d-border*2.5, 0.1f));
 
    //back, front
    normal = QVector3D(0, 0, -1);
    d = min.z();
-   p.append(planeCollider (normal, d, 0.15f));
-   p.append(planeCollider (-normal, -d, -0.15f));
+   p.append(planeCollider (normal, d-border/10, 0.1f));
+   p.append(planeCollider (-normal, d-border/10, 0.1f));
 
    //bottom, top
    normal = QVector3D(0,-1,0);
    d = min.y();
-   p.append(planeCollider (normal, d, 0.15f));
-   p.append(planeCollider (-normal, -d, 0.15f));
+   p.append(planeCollider (normal, d-border, 0.1f));
+   p.append(planeCollider (-normal, d-border*10, 0.1f));
 }
 
 void particleSpawner::renderParticles(QOpenGLFunctions &gl, QOpenGLShaderProgram *prog){
@@ -55,9 +54,9 @@ void particleSpawner::renderParticles(QOpenGLFunctions &gl, QOpenGLShaderProgram
 }
 
 void particleSpawner::genParticle(){
-    float radius = .05f;
+    float radius = .25f;
     QVector3D velocity = QVector3D(0, 0, 0);
-    float mass = 0.01f;
+    float mass = 0.1f;
     for (unsigned int i = 0; i < size[0]; i++){
         float x = -size[0]*spacing/2 + i*spacing;
         for (unsigned int j = 0; j < size[1]; j++){
@@ -65,7 +64,7 @@ void particleSpawner::genParticle(){
             for (unsigned int k = 0; k< size[2]; k++){
                 float z = -size[2]*spacing/2 + k*spacing;
                 QVector3D position = QVector3D(x, y, z);
-                QVector3D fcolor = QVector3D((float)i/(size[0]-1), (float) j/(size[1]-1), (float)k/(size[0]-1));
+                QVector3D fcolor = QVector3D(.8f, .8f, 0);
                 Particle *p = new Particle(position, radius, fcolor, velocity, program, mass);
 
                 myOctree.addParticleToOctree(position, i*size[2]*size[1] + j*size[2] + k);
@@ -83,7 +82,7 @@ void particleSpawner::updateParticles(){
         particles[i]->densityUpdate(particles, i);
     }
     for(int i = 0; i<particles.size(); i++){
-        particles[i]->forceUpdate(particles, i, myOctree);
+        particles[i]->forceUpdate(particles);
     }
     for(int i = 0; i<particles.size(); i++){
         particles[i]->positionUpdate();

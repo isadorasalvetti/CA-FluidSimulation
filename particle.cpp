@@ -6,7 +6,7 @@
 //****************************************************
 const float PI = 3.1415;
 const QVector3D G(0, -9.8f, 0);
-const float myH = 0.1;
+const float myH = 0.11;
 
 //Pressure constants
 const float refDnst = 1000; //Reference density
@@ -33,22 +33,21 @@ float Poly6k(float &rSqr, const float &h){
 }
 
 float Poly6Grad(float &r, const float &h){
-    return (-945/(32*PI*pow(h,9))) * pow((h*h-r*r), 2) * r;
+    return (-945/(32*PI*pow(h,9))) * pow((h*h-r*r), 2);
 }
 
 float Poly6Lapl(float &r, const float &h){
-    return (945/(8*PI*pow(h,9))) * pow((h*h-r*r), 2) * (r*r - (3/4)*(h*h-r*r)) * r;
+    return (945/(8*PI*pow(h,9))) * (h*h-r*r) * (r*r - (3/4)*(h*h-r*r));
 }
 
 void Particle::updateNighborhoodIndices(Octree &oct, int &i){
-    //particleNeighboorsIndex = oct.getNeighboorhoodCandidates(i);
+    particleNeighboorsIndex = oct.getNeighboorhoodCandidates(i);
 }
 
 void Particle::densityUpdate(QVector<Particle*> &particles, int &i){
-    const float Cs = 1500; //Speed of sound
+    const float Cs = 1; //Speed of sound
     //Compute density
     m_Dnst = 0;
-    QVector<int> particleNeighboor = getParticleNeighboorhood(particles, i);
     for (int i = 0; i < particleNeighboorsIndex.size(); i++){
         int p = particleNeighboorsIndex[i];
         QVector3D r = (particles[p]->m_Position - m_Position);
@@ -59,10 +58,10 @@ void Particle::densityUpdate(QVector<Particle*> &particles, int &i){
         }
     }
     //Also update pressure
-    m_Prs = Cs*Cs*(m_Dnst - refDnst);
+    m_Prs = Cs*(m_Dnst - refDnst);
 }
 
-void Particle::forceUpdate(QVector<Particle*> &particles, int &i, Octree &myOctree){
+void Particle::forceUpdate(QVector<Particle*> &particles){
     QVector3D aPressure (0, 0, 0);
     QVector3D aViscosity (0, 0, 0);
 
@@ -76,19 +75,21 @@ void Particle::forceUpdate(QVector<Particle*> &particles, int &i, Octree &myOctr
         if (rLen < myH){
             denon1 = (m_Dnst*m_Dnst);
             denon2 = (pj->m_Dnst*pj->m_Dnst);
+            if (denon1!=0 && denon2!=0)
             aPressure += -m_Mass * (m_Prs/denon1 + pj->m_Prs/denon2)
-                                 * Poly6Grad(rLen, myH) * r;
+                                 * Poly6Grad(rLen, myH) * r.normalized();
 
             denon1 = (pj->m_Dnst * m_Dnst);
+            if (denon1!=0)
             aViscosity += u * m_Mass * ((pj->m_Velocity-m_Velocity)/denon1)
                                      * Poly6Lapl(rLen, myH);
         }
     }
-    m_Acceleration = aPressure + aViscosity + G;
+    m_Acceleration = aPressure/10 + aViscosity + G;
 }
 
 void Particle::positionUpdate(){
-    float  elapsedTime = .001f; //fixed timestep
+    float  elapsedTime = .01f; //fixed timestep
     QVector3D lastPosition = m_Position;
 
     /* SOLVERS START HERE */
@@ -106,34 +107,14 @@ void Particle::collsionCheck(QVector<planeCollider> &planes, QVector<triangleCol
     /*COLLISION CHECKS START HERE */
     //planes
     for (int i = 0; i<planes.size(); i++){
-        bool check = Collider::pointPlaneCollision(m_LastPosition, m_Position, planes[i]);
+        bool check = Collider::pointPlaneCollision(m_Position, planes[i]);
         if (check) {
             lp = false;
             std::pair<QVector3D, QVector3D> nD = Collider::updateParticle(m_Position, m_Velocity, planes[i]);
             m_Position = nD.first; m_Velocity = nD.second;
+            collsionCheck(planes, triangles, spheres);
         }
     }
-
-    //triangles
-    for (int i = 0; i<triangles.size(); i++){
-        bool check = Collider::pointTriCollision(m_LastPosition, m_Position, triangles[i]);
-        if (check) {
-            lp = false;
-            std::pair<QVector3D, QVector3D> nD = Collider::updateParticle(m_Position, m_Velocity, triangles[i]);
-            m_Position = nD.first; m_Velocity = nD.second;
-        }
-    }
-
-    //sphere
-    for (int i = 0; i<spheres.size(); i++){
-        bool check = Collider::pointSphereCollision(m_Position, spheres[i]);
-        if (check) {
-            lp = false;
-            std::pair<QVector3D, QVector3D> nD = Collider::updateParticle(m_LastPosition, m_Velocity, spheres[i]);
-            m_Position = nD.first; m_Velocity = nD.second;
-        }
-    }
-
 }
 
 

@@ -7,6 +7,12 @@ bool Collider::pointPlaneCollision(const QVector3D &p1, const QVector3D &p2, con
     return p1Direction * p2Direction < 0;
 }
 
+bool Collider::pointPlaneCollision(const QVector3D &p1, const planeCollider &plane){
+    //test if a collision happened
+    float p1Direction = QVector3D::dotProduct(plane.n,p1) + plane.d;
+    return p1Direction > 0;
+}
+
 bool Collider::pointTriCollision(QVector3D p1, QVector3D p2, triangleCollider tri){
     float p1Direction = QVector3D::dotProduct(tri.n,p1) + tri.d;
     float p2Direction = QVector3D::dotProduct(tri.n,p2) + tri.d;
